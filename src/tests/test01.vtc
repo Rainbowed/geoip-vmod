@@ -8,17 +8,19 @@ server s1 {
 varnish v1 -vcl+backend {
 	import geoip from "${vmod_topbuild}/src/.libs/libvmod_geoip.so";
 
-	sub vcl_recv {
-		set req.http.X-GeoIP = geoip.country_code("127.0.0.1");
-		set req.http.X-GeoIP2 = geoip.country_code("194.31.39.155");
+	sub vcl_deliver {
+		set resp.http.X-GeoIP-AA = geoip.country_code("127.0.0.1");
+		set resp.http.X-GeoIP-NO = geoip.country_code("194.31.39.155");
+		set resp.http.X-GeoIP-ASN = geoip.asnum("194.31.39.155");
 	}
 } -start
 
 client c1 {
 	txreq -url "/"
 	rxresp
-	expect req.http.X-GeoIP == "AA"
-	expect req.http.X-GeoIP2 == "NO"
+	expect resp.http.X-GeoIP-AA == "AA"
+	expect resp.http.X-GeoIP-NO == "NO"
+	expect resp.http.X-GeoIP-ASN == "AS39029 Redpill Linpro AS"
 }
 
 client c1 -run

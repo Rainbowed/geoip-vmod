@@ -91,6 +91,20 @@ Prototype
 
 Just like country_code, but takes an IP as argument instead of a string.
 
+asnum
+------------
+    STRING asnum(STRING)
+
+Returns the AS Num (or "Unknown ASN" if the given IP is
+invalid, ASN could not be found or the ASN database could
+not be found).
+
+asnum_from_ip
+--------------------
+    STRING asnum_from_ip(IP)
+
+Just like asnum, but takes an IP as argument instead of a string.
+
 organization
 ------------
 	STRING organization(STRING)
@@ -101,7 +115,7 @@ not be found).
 
 organization_from_ip
 --------------------
-	STRING organization_from_ip(IP]
+	STRING organization_from_ip(IP)
 
 Just like organization, but takes an IP as argument instead of a string.
 

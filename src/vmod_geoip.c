@@ -25,6 +25,7 @@
 //  `----
 
 static const char *unknownCountry = "AA";
+static const char *unknownASN = "Unknown ASN";
 static const char *unknownOrg = "Unknown organization";
 static const char *unknownRegion = "Unknown region";
 static const char *unknownCity = "Unknown City";
@@ -34,6 +35,7 @@ static const char *unknownCity = "Unknown City";
  */
 struct GeoIP_databases {
     GeoIP* country;
+    GeoIP* asn;
     GeoIP* org;
     GeoIP* region;
     GeoIP* city;
@@ -50,10 +52,16 @@ struct GeoIP_databases {
 static void free_databases(void* ptr)
 {
     struct GeoIP_databases* db = (struct GeoIP_databases*)ptr;
+
     if (db->country)
         GeoIP_delete(db->country);
+
+    if (db->asn)
+        GeoIP_delete(db->asn);
+
     if (db->org)
         GeoIP_delete(db->org);
+
     if (db->region)
         GeoIP_delete(db->region);
 
@@ -64,16 +72,20 @@ int
 init_function(struct vmod_priv *pp, const struct VCL_conf *conf)
 {
     pp->priv = malloc(sizeof(struct GeoIP_databases));
+
     if (!pp->priv)
         return 1;
+
     struct GeoIP_databases* db = (struct GeoIP_databases*)pp->priv;
 
     db->country = GeoIP_new(GEOIP_MMAP_CACHE);
+    db->asn = GeoIP_open(GeoIPDBFileName[GEOIP_ASNUM_EDITION], GEOIP_MMAP_CACHE);
     db->org = GeoIP_open(GeoIPDBFileName[GEOIP_ORG_EDITION], GEOIP_MMAP_CACHE);
     db->region = GeoIP_open(GeoIPDBFileName[GEOIP_REGION_EDITION_REV1], GEOIP_MMAP_CACHE);
     db->city = GeoIP_open(GeoIPDBFileName[GEOIP_CITY_EDITION_REV1], GEOIP_MMAP_CACHE);
 
     pp->free = &free_databases;
+
     return (0);
 }
 
@@ -105,6 +117,35 @@ VCL_STRING
 vmod_country_code_from_ip(const struct vrt_ctx* ctx, struct vmod_priv* pp, const struct suckaddr* ip)
 {
     return vmod_country(ctx, pp, VRT_IP_string(ctx, ip));
+}
+
+/**
+ * AS Num
+ */
+
+VCL_STRING
+vmod_asnum(const struct vrt_ctx *ctx, struct vmod_priv *pp, const char *ip)
+{
+    const char *asn = NULL;
+
+    if (pp->priv)
+    {
+        struct GeoIP_databases* db = (struct GeoIP_databases*)pp->priv;
+
+        if(db && db->asn)
+            asn = GeoIP_org_by_addr(db->asn, ip);
+    }
+
+    if(!asn)
+        asn = unknownASN;
+
+    return WS_Copy(ctx->ws, asn, -1);
+}
+
+VCL_STRING
+vmod_asnum_from_ip(const struct vrt_ctx* ctx, struct vmod_priv* pp, const struct suckaddr* ip)
+{
+    return vmod_asnum(ctx, pp, VRT_IP_string(ctx, ip));
 }
 
 /**
